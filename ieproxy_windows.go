@@ -2,7 +2,6 @@ package ieproxy
 
 import (
 	"strings"
-	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows/registry"
@@ -15,16 +14,8 @@ type regeditValues struct {
 	AutoConfigURL string
 }
 
-var once sync.Once
-var windowsProxyConf ProxyConf
-
-// GetConf retrieves the proxy configuration from the Windows Regedit
 func getConf() ProxyConf {
-	once.Do(writeConf)
-	return windowsProxyConf
-}
-
-func writeConf() {
+	var windowsProxyConf ProxyConf
 	proxy := ""
 	proxyByPass := ""
 	autoConfigUrl := ""
@@ -42,7 +33,7 @@ func writeConf() {
 		autoDetect = ieCfg.fAutoDetect
 	}
 
-	if proxy == "" && !autoDetect{
+	if proxy == "" && !autoDetect {
 		// Try WinHTTP default proxy.
 		if defaultCfg, err := getDefaultProxyConfiguration(); err == nil {
 			defer globalFreeWrapper(defaultCfg.lpszProxy)
@@ -52,13 +43,6 @@ func writeConf() {
 			proxy = StringFromUTF16Ptr(defaultCfg.lpszProxy)
 			proxyByPass = StringFromUTF16Ptr(defaultCfg.lpszProxyBypass)
 		}
-	}
-
-	if proxy == "" && !autoDetect {
-		// Fall back to IE registry or manual detection if nothing is found there..
-		regedit, _ := readRegedit() // If the syscall fails, backup to manual detection.
-		windowsProxyConf = parseRegedit(regedit)
-		return
 	}
 
 	// Setting the proxy settings.
@@ -95,6 +79,7 @@ func writeConf() {
 	if windowsProxyConf.Automatic.Active {
 		windowsProxyConf.Automatic.PreConfiguredURL = autoConfigUrl
 	}
+	return windowsProxyConf
 }
 
 func getUserConfigFromWindowsSyscall() (*tWINHTTP_CURRENT_USER_IE_PROXY_CONFIG, error) {

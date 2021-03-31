@@ -1,6 +1,6 @@
-module github.com/mattn/go-ieproxy
+module github.com/yodeyer/go-ieproxy
 
-go 1.14
+go 1.16
 
 require (
 	golang.org/x/net v0.0.0-20191112182307-2180aed22343
